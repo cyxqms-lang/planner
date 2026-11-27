@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>주간·월간 스터디 플래너(1-2)</title>
+  <title>주간·월간 스터디 플래너</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -179,7 +179,6 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-    /* 월간 달력 */
     .cal-weekdays {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -294,7 +293,6 @@
       padding: 4px 6px;
       cursor: pointer;
     }
-    /* 전체 현황 요약 카드 */
     .member-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -405,7 +403,6 @@
       <button class="main-tab-btn" id="btnAllTab" onclick="switchMainTab('all')">전체 현황</button>
     </div>
 
-    <!-- 내 플래너 -->
     <section id="mySection" class="card">
       <div class="submode-bar">
         <div class="submode-group">
@@ -415,7 +412,6 @@
         <button class="refresh-btn" onclick="goToday()">오늘로 이동</button>
       </div>
 
-      <!-- 주간 보기 영역 -->
       <div id="weekModePanel">
         <div class="add-box">
           <select id="weekDaySelect">
@@ -434,7 +430,6 @@
         <div id="weekTasksContainer"></div>
       </div>
 
-      <!-- 월간 보기 영역 -->
       <div id="monthModePanel" class="hidden">
         <div class="cal-weekdays">
           <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
@@ -453,12 +448,11 @@
       </div>
     </section>
 
-    <!-- 전체 현황 -->
     <section id="allSection" class="hidden"></section>
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyw9zWgGto7y_LAPuYCxmMYVGEbYy3AnKBiAiH45PykG8AXVM6Li6wh8d7DgQ4jOA5-/exec';
+    const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
 
     const DAY_NAME = {
       WEEK: '주간', MON: '월', TUE: '화', WED: '수',
@@ -469,7 +463,7 @@
 
     let anchorDate = new Date();
     let selectedDateStr = toDateStr(new Date());
-    let myMode = 'week'; // 'week' | 'month'
+    let myMode = 'week';
     let members = [];
     let tasks = [];
     let currentMemberId = localStorage.getItem('planner_member_id') || '';
@@ -507,7 +501,6 @@
       return { weekKey, dateRange: `${fmt(mon)}(월) ~ ${fmt(sun)}(일)` };
     }
 
-    // content에 [YYYY-MM-DD] 태그가 있으면 날짜와 본문을 분리
     function parseTaskContent(rawContent) {
       const match = String(rawContent || '').match(/^\[(\d{4}-\d{2}-\d{2})\]\s*(.*)$/);
       if (match) {
@@ -589,7 +582,6 @@
       const target = document.getElementById('weekTasksContainer');
       target.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
 
-      // 월간 보기일 때는 전체 주차를 불러와 해당 월 데이터를 필터링
       const query = myMode === 'week'
         ? `?week=${encodeURIComponent(getWeekKeyFromDate(anchorDate))}`
         : '';
@@ -629,10 +621,7 @@
     }
 
     function renderView() {
-      // 1. 상단 전체 달성률
-      const activePool = myMode === 'week'
-        ? tasks
-        : getMonthTasksForMember('');
+      const activePool = myMode === 'week' ? tasks : getMonthTasksForMember('');
       const totalCount = activePool.length;
       const doneCount = activePool.filter(t => t.is_done).length;
       const rate = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
@@ -692,3 +681,183 @@
         countByDate[d].total += 1;
         if (t.is_done) countByDate[d].done += 1;
       });
+
+      const gridEl = document.getElementById('monthCalendar');
+      let html = '';
+      for (let i = 0; i < totalCells; i++) {
+        const cellDate = new Date(year, month, i - startOffset + 1);
+        const dateStr = toDateStr(cellDate);
+        const inMonth = cellDate.getMonth() === month;
+        const stat = countByDate[dateStr];
+        const isSelected = dateStr === selectedDateStr;
+        const isToday = dateStr === todayStr;
+        const allDone = stat && stat.total > 0 && stat.done === stat.total;
+
+        html += `
+          <div class="cal-cell ${inMonth ? '' : 'muted'} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectCalendarDate('${dateStr}')">
+            <span class="cal-num">${cellDate.getDate()}</span>
+            ${stat ? `<span class="cal-badge ${allDone ? 'all-done' : ''}">${stat.done}/${stat.total}</span>` : '<span></span>'}
+          </div>
+        `;
+      }
+      gridEl.innerHTML = html;
+
+      document.getElementById('selectedDateLabel').textContent = `${selectedDateStr} 할 일`;
+      const dayTasks = tasks.filter(t => t.member_id === currentMemberId && parseTaskContent(t.content).dateStr === selectedDateStr);
+      const listEl = document.getElementById('monthTasksContainer');
+      if (!dayTasks.length) {
+        listEl.innerHTML = '<div class="empty-msg">선택한 날짜에 등록된 할 일이 없습니다.</div>';
+        return;
+      }
+      listEl.innerHTML = dayTasks.map(t => {
+        const parsed = parseTaskContent(t.content);
+        return `
+          <div class="task-row">
+            <input type="checkbox" ${t.is_done ? 'checked' : ''} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+            <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(parsed.text)}</span>
+            <button class="del-btn" onclick="removeTask('${escapeAttr(t.task_id)}')" aria-label="삭제">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectCalendarDate(dateStr) {
+      selectedDateStr = dateStr;
+      document.getElementById('monthDateInput').value = dateStr;
+      renderView();
+    }
+
+    function renderAllMembers() {
+      const allContainer = document.getElementById('allSection');
+      if (!members.length) {
+        allContainer.innerHTML = '<div class="card empty-msg">등록된 멤버가 없습니다.</div>';
+        return;
+      }
+
+      allContainer.innerHTML = members.map(m => {
+        const mTasks = myMode === 'week'
+          ? sortByDay(tasks.filter(t => t.member_id === m.member_id))
+          : getMonthTasksForMember(m.member_id);
+        const mTotal = mTasks.length;
+        const mDone = mTasks.filter(t => t.is_done).length;
+        const mPct = mTotal ? Math.round((mDone / mTotal) * 100) : 0;
+        const isAllDone = mTotal > 0 && mDone === mTotal;
+        const isOpen = expandedIds.has(m.member_id);
+        const canEdit = m.member_id === currentMemberId;
+
+        const detailRows = !mTotal
+          ? '<div class="empty-msg" style="padding:10px 0;">등록된 항목이 없습니다.</div>'
+          : mTasks.map(t => {
+              const parsed = parseTaskContent(t.content);
+              return `
+                <div class="task-row">
+                  <input type="checkbox" ${t.is_done ? 'checked' : ''} ${canEdit ? '' : 'disabled'} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+                  <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
+                  ${parsed.dateStr ? `<span class="date-chip">${parsed.dateStr.slice(5)}</span>` : ''}
+                  <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(parsed.text)}</span>
+                </div>
+              `;
+            }).join('');
+
+        return `
+          <div class="member-card">
+            <div class="member-summary" onclick="toggleCard('${escapeAttr(m.member_id)}')">
+              <div class="member-left">
+                <span class="member-name">${escapeHtml(m.name)}</span>
+                ${isAllDone ? '<span class="done-pill">완료</span>' : ''}
+              </div>
+              <div class="member-right">
+                <div class="mini-track"><div class="mini-fill" style="width:${mPct}%"></div></div>
+                <span class="member-count">${mDone}/${mTotal}</span>
+                <span class="caret">${isOpen ? '▲' : '▼'}</span>
+              </div>
+            </div>
+            <div class="member-detail ${isOpen ? '' : 'hidden'}">${detailRows}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleCard(id) {
+      if (expandedIds.has(id)) expandedIds.delete(id);
+      else expandedIds.add(id);
+      renderAllMembers();
+    }
+
+    async function sendPost(body) {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    async function createWeekTask() {
+      if (!currentMemberId) return alert('상단에서 내 이름을 먼저 선택해 주세요.');
+      const input = document.getElementById('weekTaskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const day = document.getElementById('weekDaySelect').value;
+      const weekKey = getWeekKeyFromDate(anchorDate);
+      const tempId = 'temp_' + Date.now();
+
+      tasks.push({ task_id: tempId, week_key: weekKey, member_id: currentMemberId, day, content: text, is_done: false });
+      input.value = '';
+      renderView();
+
+      await sendPost({ action: 'add', week_key: weekKey, member_id: currentMemberId, day, content: text });
+      loadData();
+    }
+
+    async function createMonthTask() {
+      if (!currentMemberId) return alert('상단에서 내 이름을 먼저 선택해 주세요.');
+      const input = document.getElementById('monthTaskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const dateStr = document.getElementById('monthDateInput').value || selectedDateStr;
+      const pickedDate = parseDateStr(dateStr);
+      const weekKey = getWeekKeyFromDate(pickedDate);
+      const dayCode = WEEKDAY_CODES[pickedDate.getDay()];
+      const packed = packTaskContent(dateStr, text);
+      const tempId = 'temp_' + Date.now();
+
+      tasks.push({ task_id: tempId, week_key: weekKey, member_id: currentMemberId, day: dayCode, content: packed, is_done: false });
+      input.value = '';
+      renderView();
+
+      await sendPost({ action: 'add', week_key: weekKey, member_id: currentMemberId, day: dayCode, content: packed });
+      loadData();
+    }
+
+    async function toggleTask(taskId) {
+      const item = tasks.find(t => t.task_id === taskId);
+      if (!item) return;
+      item.is_done = !item.is_done;
+      renderView();
+      await sendPost({ action: 'toggle', task_id: taskId });
+    }
+
+    async function removeTask(taskId) {
+      if (!confirm('삭제할까요?')) return;
+      tasks = tasks.filter(t => t.task_id !== taskId);
+      renderView();
+      await sendPost({ action: 'delete', task_id: taskId });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    }
+
+    renderHeader();
+    loadData();
+  </script>
+</body>
+</html>
