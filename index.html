@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주간 플래너(1-2)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-bg: #eff6ff;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --done: #16a34a;
+      --done-bg: #dcfce7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 48px;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+    .topbar-inner { max-width: 600px; margin: 0 auto; }
+    .week-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .week-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .week-info { text-align: center; }
+    .week-main { font-size: 15px; font-weight: 700; }
+    .week-sub { font-size: 12px; color: var(--muted); }
+    .user-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .user-select-wrap { display: flex; align-items: center; gap: 6px; flex: 1; }
+    .user-label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    select, input[type="text"] {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--text);
+    }
+    #memberSelect { flex: 1; max-width: 220px; }
+    .refresh-btn {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .wrap { max-width: 600px; margin: 0 auto; padding: 14px 16px 0; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .overall-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .bar-track {
+      height: 7px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--done);
+      transition: width 0.25s ease;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .add-box {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .add-box select { width: 84px; flex-shrink: 0; }
+    .add-box input { flex: 1; min-width: 0; }
+    .add-box button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .task-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 2px;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-row:last-child { border-bottom: none; }
+    .task-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .day-chip {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--primary-bg);
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .task-label {
+      flex: 1;
+      font-size: 14px;
+      word-break: break-word;
+    }
+    .task-label.done {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .del-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 15px;
+      padding: 4px 6px;
+      cursor: pointer;
+    }
+    /* 전체 현황 요약 카드 */
+    .member-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .member-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      min-height: 28px;
+    }
+    .member-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 96px;
+    }
+    .member-name { font-size: 14px; font-weight: 700; }
+    .done-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--done-bg);
+      color: var(--done);
+    }
+    .member-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      max-width: 240px;
+    }
+    .mini-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .mini-fill {
+      height: 100%;
+      background: var(--done);
+    }
+    .member-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 46px;
+      text-align: right;
+    }
+    .caret { font-size: 11px; color: var(--muted); width: 12px; text-align: center; }
+    .member-detail {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .empty-msg {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 22px 8px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="week-row">
+        <button class="week-btn" onclick="shiftWeek(-7)">◀ 이전</button>
+        <div class="week-info">
+          <div class="week-main" id="weekTitle">2026-W48</div>
+          <div class="week-sub" id="weekDates">11/23(월) ~ 11/29(일)</div>
+        </div>
+        <button class="week-btn" onclick="shiftWeek(7)">다음 ▶</button>
+      </div>
+      <div class="user-row">
+        <div class="user-select-wrap">
+          <span class="user-label">내 이름</span>
+          <select id="memberSelect" onchange="onSelectMember(this.value)">
+            <option value="">선택하세요</option>
+          </select>
+        </div>
+        <button class="refresh-btn" onclick="loadWeekData()">↻ 새로고침</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="overall-head">
+        <span>전체 주간 달성률</span>
+        <span id="overallStat">0% (0/0)</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="overallBar"></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="btnMyTab" onclick="switchTab('my')">내 플래너</button>
+      <button class="tab-btn" id="btnAllTab" onclick="switchTab('all')">전체 현황</button>
+    </div>
+
+    <!-- 내 플래너 (첫 화면 기본 활성) -->
+    <section id="mySection" class="card">
+      <div class="add-box">
+        <select id="daySelect">
+          <option value="WEEK">주간</option>
+          <option value="MON">월</option>
+          <option value="TUE">화</option>
+          <option value="WED">수</option>
+          <option value="THU">목</option>
+          <option value="FRI">금</option>
+          <option value="SAT">토</option>
+          <option value="SUN">일</option>
+        </select>
+        <input id="taskInput" type="text" placeholder="이번 주 할 일 입력" onkeydown="if(event.key==='Enter') createTask()" />
+        <button onclick="createTask()">추가</button>
+      </div>
+      <div id="myTasksContainer"></div>
+    </section>
+
+    <!-- 전체 현황 (20명 요약 카드) -->
+    <section id="allSection" class="hidden"></section>
+  </div>
+
+  <script>
+    // 배포한 Google Apps Script 웹 앱 URL을 입력하세요.
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyw9zWgGto7y_LAPuYCxmMYVGEbYy3AnKBiAiH45PykG8AXVM6Li6wh8d7DgQ4jOA5-/exec';
+
+    const DAY_NAME = {
+      WEEK: '주간', MON: '월', TUE: '화', WED: '수',
+      THU: '목', FRI: '금', SAT: '토', SUN: '일'
+    };
+    const DAY_SORT = ['WEEK', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+    let anchorDate = new Date();
+    let members = [];
+    let tasks = [];
+    let currentMemberId = localStorage.getItem('planner_member_id') || '';
+    let expandedIds = new Set();
+
+    function getWeekMeta(date) {
+      const utc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = utc.getUTCDay() || 7;
+      utc.setUTCDate(utc.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
+      const weekKey = `${utc.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+
+      const mon = new Date(date);
+      const offset = (mon.getDay() === 0 ? -6 : 1) - mon.getDay();
+      mon.setDate(mon.getDate() + offset);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+
+      const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+      return { weekKey, dateRange: `${fmt(mon)}(월) ~ ${fmt(sun)}(일)` };
+    }
+
+    function renderWeekMeta() {
+      const meta = getWeekMeta(anchorDate);
+      document.getElementById('weekTitle').textContent = meta.weekKey;
+      document.getElementById('weekDates').textContent = meta.dateRange;
+    }
+
+    function shiftWeek(days) {
+      anchorDate.setDate(anchorDate.getDate() + days);
+      renderWeekMeta();
+      loadWeekData();
+    }
+
+    function onSelectMember(id) {
+      currentMemberId = id;
+      localStorage.setItem('planner_member_id', id);
+      renderView();
+    }
+
+    function switchTab(tab) {
+      const isMy = tab === 'my';
+      document.getElementById('btnMyTab').classList.toggle('active', isMy);
+      document.getElementById('btnAllTab').classList.toggle('active', !isMy);
+      document.getElementById('mySection').classList.toggle('hidden', !isMy);
+      document.getElementById('allSection').classList.toggle('hidden', isMy);
+    }
+
+    async function loadWeekData() {
+      const { weekKey } = getWeekMeta(anchorDate);
+      document.getElementById('myTasksContainer').innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+      try {
+        const res = await fetch(`${API_URL}?week=${encodeURIComponent(weekKey)}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          members = data.members || [];
+          tasks = data.tasks || [];
+          populateMembers();
+          renderView();
+        }
+      } catch (err) {
+        document.getElementById('myTasksContainer').innerHTML = '<div class="empty-msg">연결을 확인해 주세요.</div>';
+      }
+    }
+
+    function populateMembers() {
+      const select = document.getElementById('memberSelect');
+      select.innerHTML = '<option value="">이름 선택</option>' +
+        members.map(m => `<option value="${escapeAttr(m.member_id)}" ${m.member_id === currentMemberId ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('');
+    }
+
+    function sortByDay(list) {
+      return [...list].sort((a, b) => DAY_SORT.indexOf(a.day) - DAY_SORT.indexOf(b.day));
+    }
+
+    function renderView() {
+      // 전체 달성률
+      const totalCount = tasks.length;
+      const doneCount = tasks.filter(t => t.is_done).length;
+      const rate = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+      document.getElementById('overallStat').textContent = `${rate}% (${doneCount}/${totalCount})`;
+      document.getElementById('overallBar').style.width = `${rate}%`;
+
+      // 내 플래너
+      const myContainer = document.getElementById('myTasksContainer');
+      if (!currentMemberId) {
+        myContainer.innerHTML = '<div class="empty-msg">상단에서 내 이름을 선택하면 할 일을 추가하고 체크할 수 있습니다.</div>';
+      } else {
+        const mine = sortByDay(tasks.filter(t => t.member_id === currentMemberId));
+        if (!mine.length) {
+          myContainer.innerHTML = '<div class="empty-msg">이번 주 등록된 할 일이 없습니다.</div>';
+        } else {
+          myContainer.innerHTML = mine.map(t => `
+            <div class="task-row">
+              <input type="checkbox" ${t.is_done ? 'checked' : ''} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+              <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
+              <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(t.content)}</span>
+              <button class="del-btn" onclick="removeTask('${escapeAttr(t.task_id)}')" aria-label="삭제">✕</button>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 전체 현황 (20명 접이식 요약 카드)
+      const allContainer = document.getElementById('allSection');
+      if (!members.length) {
+        allContainer.innerHTML = '<div class="card empty-msg">등록된 멤버가 없습니다.</div>';
+        return;
+      }
+
+      allContainer.innerHTML = members.map(m => {
+        const mTasks = sortByDay(tasks.filter(t => t.member_id === m.member_id));
+        const mTotal = mTasks.length;
+        const mDone = mTasks.filter(t => t.is_done).length;
+        const mPct = mTotal ? Math.round((mDone / mTotal) * 100) : 0;
+        const isAllDone = mTotal > 0 && mDone === mTotal;
+        const isOpen = expandedIds.has(m.member_id);
+        const canEdit = m.member_id === currentMemberId;
+
+        const detailRows = !mTotal
+          ? '<div class="empty-msg" style="padding:10px 0;">등록된 항목이 없습니다.</div>'
+          : mTasks.map(t => `
+              <div class="task-row">
+                <input type="checkbox" ${t.is_done ? 'checked' : ''} ${canEdit ? '' : 'disabled'} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+                <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
+                <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(t.content)}</span>
+              </div>
+            `).join('');
+
+        return `
+          <div class="member-card">
+            <div class="member-summary" onclick="toggleCard('${escapeAttr(m.member_id)}')">
+              <div class="member-left">
+                <span class="member-name">${escapeHtml(m.name)}</span>
+                ${isAllDone ? '<span class="done-pill">완료</span>' : ''}
+              </div>
+              <div class="member-right">
+                <div class="mini-track"><div class="mini-fill" style="width:${mPct}%"></div></div>
+                <span class="member-count">${mDone}/${mTotal}</span>
+                <span class="caret">${isOpen ? '▲' : '▼'}</span>
+              </div>
+            </div>
+            <div class="member-detail ${isOpen ? '' : 'hidden'}">${detailRows}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleCard(id) {
+      if (expandedIds.has(id)) expandedIds.delete(id);
+      else expandedIds.add(id);
+      renderView();
+    }
+
+    async function sendPost(body) {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    async function createTask() {
+      if (!currentMemberId) {
+        alert('상단에서 내 이름을 먼저 선택해 주세요.');
+        return;
+      }
+      const input = document.getElementById('taskInput');
+      const content = input.value.trim();
+      if (!content) return;
+
+      const day = document.getElementById('daySelect').value;
+      const { weekKey } = getWeekMeta(anchorDate);
+      const tempId = 'temp_' + Date.now();
+
+      tasks.push({ task_id: tempId, week_key: weekKey, member_id: currentMemberId, day, content, is_done: false });
+      input.value = '';
+      renderView();
+
+      await sendPost({ action: 'add', week_key: weekKey, member_id: currentMemberId, day, content });
+      loadWeekData();
+    }
+
+    async function toggleTask(taskId) {
+      const item = tasks.find(t => t.task_id === taskId);
+      if (!item) return;
+      item.is_done = !item.is_done;
+      renderView();
+      await sendPost({ action: 'toggle', task_id: taskId });
+    }
+
+    async function removeTask(taskId) {
+      if (!confirm('삭제할까요?')) return;
+      tasks = tasks.filter(t => t.task_id !== taskId);
+      renderView();
+      await sendPost({ action: 'delete', task_id: taskId });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    }
+
+    renderWeekMeta();
+    loadWeekData();
+  </script>
+</body>
+</html>
