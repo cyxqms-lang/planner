@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>주간 플래너(1-2)</title>
+  <title>주간·월간 스터디 플래너</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -22,7 +22,7 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.5;
-      padding-bottom: 48px;
+      padding-bottom: 56px;
     }
     .topbar {
       position: sticky;
@@ -32,14 +32,14 @@
       border-bottom: 1px solid var(--border);
       padding: 12px 16px;
     }
-    .topbar-inner { max-width: 600px; margin: 0 auto; }
-    .week-row {
+    .topbar-inner { max-width: 640px; margin: 0 auto; }
+    .period-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 10px;
     }
-    .week-btn {
+    .nav-btn {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -48,9 +48,9 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .week-info { text-align: center; }
-    .week-main { font-size: 15px; font-weight: 700; }
-    .week-sub { font-size: 12px; color: var(--muted); }
+    .period-info { text-align: center; }
+    .period-main { font-size: 15px; font-weight: 700; }
+    .period-sub { font-size: 12px; color: var(--muted); }
     .user-row {
       display: flex;
       align-items: center;
@@ -59,7 +59,7 @@
     }
     .user-select-wrap { display: flex; align-items: center; gap: 6px; flex: 1; }
     .user-label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
-    select, input[type="text"] {
+    select, input[type="text"], input[type="date"] {
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px 10px;
@@ -78,7 +78,7 @@
       color: var(--muted);
       cursor: pointer;
     }
-    .wrap { max-width: 600px; margin: 0 auto; padding: 14px 16px 0; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 14px 16px 0; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -106,13 +106,13 @@
       background: var(--done);
       transition: width 0.25s ease;
     }
-    .tabs {
+    .main-tabs {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
       margin-bottom: 12px;
     }
-    .tab-btn {
+    .main-tab-btn {
       padding: 10px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -122,33 +122,135 @@
       color: var(--muted);
       cursor: pointer;
     }
-    .tab-btn.active {
+    .main-tab-btn.active {
       background: var(--primary);
       border-color: var(--primary);
       color: #fff;
     }
+    .submode-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .submode-group {
+      display: inline-flex;
+      background: var(--bg);
+      padding: 3px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+    }
+    .submode-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .submode-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
     .add-box {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
       margin-bottom: 12px;
     }
-    .add-box select { width: 84px; flex-shrink: 0; }
-    .add-box input { flex: 1; min-width: 0; }
+    .add-box select { width: 82px; flex-shrink: 0; }
+    .add-box input[type="date"] { width: 138px; flex-shrink: 0; font-size: 13px; }
+    .add-box input[type="text"] { flex: 1; min-width: 150px; }
     .add-box button {
       background: var(--primary);
       color: #fff;
       border: none;
       border-radius: 8px;
       padding: 0 14px;
+      min-height: 36px;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       flex-shrink: 0;
     }
+    /* 월간 달력 */
+    .cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .cal-cell {
+      min-height: 58px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 4px;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cal-cell.muted {
+      background: #f8fafc;
+      color: #cbd5e1;
+    }
+    .cal-cell.selected {
+      border-color: var(--primary);
+      background: var(--primary-bg);
+    }
+    .cal-cell.today .cal-num {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 999px;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cal-num { font-size: 12px; font-weight: 700; }
+    .cal-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .cal-badge.all-done {
+      background: var(--done-bg);
+      color: var(--done);
+    }
+    .selected-date-head {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     .task-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       padding: 10px 2px;
       border-bottom: 1px solid var(--border);
     }
@@ -167,6 +269,12 @@
       border-radius: 6px;
       background: var(--primary-bg);
       color: var(--primary);
+      flex-shrink: 0;
+    }
+    .date-chip {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
       flex-shrink: 0;
     }
     .task-label {
@@ -252,7 +360,7 @@
       text-align: center;
       color: var(--muted);
       font-size: 13px;
-      padding: 22px 8px;
+      padding: 20px 8px;
     }
     .hidden { display: none; }
   </style>
@@ -261,13 +369,13 @@
 
   <div class="topbar">
     <div class="topbar-inner">
-      <div class="week-row">
-        <button class="week-btn" onclick="shiftWeek(-7)">◀ 이전</button>
-        <div class="week-info">
-          <div class="week-main" id="weekTitle">2026-W48</div>
-          <div class="week-sub" id="weekDates">11/23(월) ~ 11/29(일)</div>
+      <div class="period-row">
+        <button class="nav-btn" onclick="shiftPeriod(-1)">◀ 이전</button>
+        <div class="period-info">
+          <div class="period-main" id="periodTitle">2026-W48</div>
+          <div class="period-sub" id="periodSub">11/23(월) ~ 11/29(일)</div>
         </div>
-        <button class="week-btn" onclick="shiftWeek(7)">다음 ▶</button>
+        <button class="nav-btn" onclick="shiftPeriod(1)">다음 ▶</button>
       </div>
       <div class="user-row">
         <div class="user-select-wrap">
@@ -276,7 +384,7 @@
             <option value="">선택하세요</option>
           </select>
         </div>
-        <button class="refresh-btn" onclick="loadWeekData()">↻ 새로고침</button>
+        <button class="refresh-btn" onclick="loadData()">↻ 새로고침</button>
       </div>
     </div>
   </div>
@@ -284,7 +392,7 @@
   <div class="wrap">
     <div class="card">
       <div class="overall-head">
-        <span>전체 주간 달성률</span>
+        <span id="overallTitle">이번 주 전체 달성률</span>
         <span id="overallStat">0% (0/0)</span>
       </div>
       <div class="bar-track">
@@ -292,36 +400,64 @@
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab-btn active" id="btnMyTab" onclick="switchTab('my')">내 플래너</button>
-      <button class="tab-btn" id="btnAllTab" onclick="switchTab('all')">전체 현황</button>
+    <div class="main-tabs">
+      <button class="main-tab-btn active" id="btnMyTab" onclick="switchMainTab('my')">내 플래너</button>
+      <button class="main-tab-btn" id="btnAllTab" onclick="switchMainTab('all')">전체 현황</button>
     </div>
 
-    <!-- 내 플래너 (첫 화면 기본 활성) -->
+    <!-- 내 플래너 -->
     <section id="mySection" class="card">
-      <div class="add-box">
-        <select id="daySelect">
-          <option value="WEEK">주간</option>
-          <option value="MON">월</option>
-          <option value="TUE">화</option>
-          <option value="WED">수</option>
-          <option value="THU">목</option>
-          <option value="FRI">금</option>
-          <option value="SAT">토</option>
-          <option value="SUN">일</option>
-        </select>
-        <input id="taskInput" type="text" placeholder="이번 주 할 일 입력" onkeydown="if(event.key==='Enter') createTask()" />
-        <button onclick="createTask()">추가</button>
+      <div class="submode-bar">
+        <div class="submode-group">
+          <button class="submode-btn active" id="btnWeekMode" onclick="setMyMode('week')">주간 보기</button>
+          <button class="submode-btn" id="btnMonthMode" onclick="setMyMode('month')">월간 보기</button>
+        </div>
+        <button class="refresh-btn" onclick="goToday()">오늘로 이동</button>
       </div>
-      <div id="myTasksContainer"></div>
+
+      <!-- 주간 보기 영역 -->
+      <div id="weekModePanel">
+        <div class="add-box">
+          <select id="weekDaySelect">
+            <option value="WEEK">주간</option>
+            <option value="MON">월</option>
+            <option value="TUE">화</option>
+            <option value="WED">수</option>
+            <option value="THU">목</option>
+            <option value="FRI">금</option>
+            <option value="SAT">토</option>
+            <option value="SUN">일</option>
+          </select>
+          <input id="weekTaskInput" type="text" placeholder="이번 주 할 일 입력" onkeydown="if(event.key==='Enter') createWeekTask()" />
+          <button onclick="createWeekTask()">추가</button>
+        </div>
+        <div id="weekTasksContainer"></div>
+      </div>
+
+      <!-- 월간 보기 영역 -->
+      <div id="monthModePanel" class="hidden">
+        <div class="cal-weekdays">
+          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+        </div>
+        <div class="cal-grid" id="monthCalendar"></div>
+
+        <div class="selected-date-head">
+          <span id="selectedDateLabel">선택한 날짜 할 일</span>
+        </div>
+        <div class="add-box">
+          <input id="monthDateInput" type="date" onchange="onPickDateInput(this.value)" />
+          <input id="monthTaskInput" type="text" placeholder="해당 날짜 할 일 입력" onkeydown="if(event.key==='Enter') createMonthTask()" />
+          <button onclick="createMonthTask()">추가</button>
+        </div>
+        <div id="monthTasksContainer"></div>
+      </div>
     </section>
 
-    <!-- 전체 현황 (20명 요약 카드) -->
+    <!-- 전체 현황 -->
     <section id="allSection" class="hidden"></section>
   </div>
 
   <script>
-    // 배포한 Google Apps Script 웹 앱 URL을 입력하세요.
     const API_URL = 'https://script.google.com/macros/s/AKfycbyw9zWgGto7y_LAPuYCxmMYVGEbYy3AnKBiAiH45PykG8AXVM6Li6wh8d7DgQ4jOA5-/exec';
 
     const DAY_NAME = {
@@ -329,41 +465,110 @@
       THU: '목', FRI: '금', SAT: '토', SUN: '일'
     };
     const DAY_SORT = ['WEEK', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const WEEKDAY_CODES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
     let anchorDate = new Date();
+    let selectedDateStr = toDateStr(new Date());
+    let myMode = 'week'; // 'week' | 'month'
     let members = [];
     let tasks = [];
     let currentMemberId = localStorage.getItem('planner_member_id') || '';
     let expandedIds = new Set();
 
-    function getWeekMeta(date) {
+    function toDateStr(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function parseDateStr(str) {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function getWeekKeyFromDate(date) {
       const utc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
       const dayNum = utc.getUTCDay() || 7;
       utc.setUTCDate(utc.getUTCDate() + 4 - dayNum);
       const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
       const weekNo = Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
-      const weekKey = `${utc.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+      return `${utc.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
 
+    function getWeekMeta(date) {
+      const weekKey = getWeekKeyFromDate(date);
       const mon = new Date(date);
       const offset = (mon.getDay() === 0 ? -6 : 1) - mon.getDay();
       mon.setDate(mon.getDate() + offset);
       const sun = new Date(mon);
       sun.setDate(mon.getDate() + 6);
-
       const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
       return { weekKey, dateRange: `${fmt(mon)}(월) ~ ${fmt(sun)}(일)` };
     }
 
-    function renderWeekMeta() {
-      const meta = getWeekMeta(anchorDate);
-      document.getElementById('weekTitle').textContent = meta.weekKey;
-      document.getElementById('weekDates').textContent = meta.dateRange;
+    // content에 [YYYY-MM-DD] 태그가 있으면 날짜와 본문을 분리
+    function parseTaskContent(rawContent) {
+      const match = String(rawContent || '').match(/^\[(\d{4}-\d{2}-\d{2})\]\s*(.*)$/);
+      if (match) {
+        return { dateStr: match[1], text: match[2] };
+      }
+      return { dateStr: '', text: String(rawContent || '') };
     }
 
-    function shiftWeek(days) {
-      anchorDate.setDate(anchorDate.getDate() + days);
-      renderWeekMeta();
-      loadWeekData();
+    function packTaskContent(dateStr, text) {
+      return dateStr ? `[${dateStr}] ${text}` : text;
+    }
+
+    function renderHeader() {
+      if (myMode === 'week') {
+        const meta = getWeekMeta(anchorDate);
+        document.getElementById('periodTitle').textContent = meta.weekKey;
+        document.getElementById('periodSub').textContent = meta.dateRange;
+      } else {
+        const y = anchorDate.getFullYear();
+        const m = anchorDate.getMonth() + 1;
+        document.getElementById('periodTitle').textContent = `${y}년 ${m}월`;
+        document.getElementById('periodSub').textContent = '날짜를 선택해 월간 계획 확인';
+      }
+      document.getElementById('monthDateInput').value = selectedDateStr;
+    }
+
+    function shiftPeriod(dir) {
+      if (myMode === 'week') {
+        anchorDate.setDate(anchorDate.getDate() + dir * 7);
+      } else {
+        anchorDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + dir, 1);
+        selectedDateStr = toDateStr(anchorDate);
+      }
+      renderHeader();
+      loadData();
+    }
+
+    function goToday() {
+      anchorDate = new Date();
+      selectedDateStr = toDateStr(new Date());
+      renderHeader();
+      loadData();
+    }
+
+    function setMyMode(mode) {
+      myMode = mode;
+      document.getElementById('btnWeekMode').classList.toggle('active', mode === 'week');
+      document.getElementById('btnMonthMode').classList.toggle('active', mode === 'month');
+      document.getElementById('weekModePanel').classList.toggle('hidden', mode !== 'week');
+      document.getElementById('monthModePanel').classList.toggle('hidden', mode !== 'month');
+      renderHeader();
+      loadData();
+    }
+
+    function onPickDateInput(val) {
+      if (!val) return;
+      selectedDateStr = val;
+      const picked = parseDateStr(val);
+      anchorDate = new Date(picked.getFullYear(), picked.getMonth(), picked.getDate());
+      renderHeader();
+      renderView();
     }
 
     function onSelectMember(id) {
@@ -372,7 +577,7 @@
       renderView();
     }
 
-    function switchTab(tab) {
+    function switchMainTab(tab) {
       const isMy = tab === 'my';
       document.getElementById('btnMyTab').classList.toggle('active', isMy);
       document.getElementById('btnAllTab').classList.toggle('active', !isMy);
@@ -380,11 +585,17 @@
       document.getElementById('allSection').classList.toggle('hidden', isMy);
     }
 
-    async function loadWeekData() {
-      const { weekKey } = getWeekMeta(anchorDate);
-      document.getElementById('myTasksContainer').innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+    async function loadData() {
+      const target = document.getElementById('weekTasksContainer');
+      target.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+
+      // 월간 보기일 때는 전체 주차를 불러와 해당 월 데이터를 필터링
+      const query = myMode === 'week'
+        ? `?week=${encodeURIComponent(getWeekKeyFromDate(anchorDate))}`
+        : '';
+
       try {
-        const res = await fetch(`${API_URL}?week=${encodeURIComponent(weekKey)}`);
+        const res = await fetch(`${API_URL}${query}`);
         const data = await res.json();
         if (data.status === 'ok') {
           members = data.members || [];
@@ -392,8 +603,8 @@
           populateMembers();
           renderView();
         }
-      } catch (err) {
-        document.getElementById('myTasksContainer').innerHTML = '<div class="empty-msg">연결을 확인해 주세요.</div>';
+      } catch (e) {
+        target.innerHTML = '<div class="empty-msg">데이터 연결을 확인해 주세요.</div>';
       }
     }
 
@@ -403,145 +614,81 @@
         members.map(m => `<option value="${escapeAttr(m.member_id)}" ${m.member_id === currentMemberId ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('');
     }
 
+    function getMonthTasksForMember(memberId) {
+      const prefix = `${anchorDate.getFullYear()}-${String(anchorDate.getMonth() + 1).padStart(2, '0')}-`;
+      return tasks.filter(t => {
+        if (memberId && t.member_id !== memberId) return false;
+        const parsed = parseTaskContent(t.content);
+        if (parsed.dateStr) return parsed.dateStr.startsWith(prefix);
+        return false;
+      });
+    }
+
     function sortByDay(list) {
       return [...list].sort((a, b) => DAY_SORT.indexOf(a.day) - DAY_SORT.indexOf(b.day));
     }
 
     function renderView() {
-      // 전체 달성률
-      const totalCount = tasks.length;
-      const doneCount = tasks.filter(t => t.is_done).length;
+      // 1. 상단 전체 달성률
+      const activePool = myMode === 'week'
+        ? tasks
+        : getMonthTasksForMember('');
+      const totalCount = activePool.length;
+      const doneCount = activePool.filter(t => t.is_done).length;
       const rate = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+      document.getElementById('overallTitle').textContent = myMode === 'week'
+        ? '이번 주 전체 달성률'
+        : `${anchorDate.getMonth() + 1}월 날짜별 전체 달성률`;
       document.getElementById('overallStat').textContent = `${rate}% (${doneCount}/${totalCount})`;
       document.getElementById('overallBar').style.width = `${rate}%`;
 
-      // 내 플래너
-      const myContainer = document.getElementById('myTasksContainer');
       if (!currentMemberId) {
-        myContainer.innerHTML = '<div class="empty-msg">상단에서 내 이름을 선택하면 할 일을 추가하고 체크할 수 있습니다.</div>';
+        document.getElementById('weekTasksContainer').innerHTML = '<div class="empty-msg">상단에서 내 이름을 먼저 선택해 주세요.</div>';
+        document.getElementById('monthTasksContainer').innerHTML = '<div class="empty-msg">상단에서 내 이름을 먼저 선택해 주세요.</div>';
+      } else if (myMode === 'week') {
+        renderWeekList();
       } else {
-        const mine = sortByDay(tasks.filter(t => t.member_id === currentMemberId));
-        if (!mine.length) {
-          myContainer.innerHTML = '<div class="empty-msg">이번 주 등록된 할 일이 없습니다.</div>';
-        } else {
-          myContainer.innerHTML = mine.map(t => `
-            <div class="task-row">
-              <input type="checkbox" ${t.is_done ? 'checked' : ''} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
-              <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
-              <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(t.content)}</span>
-              <button class="del-btn" onclick="removeTask('${escapeAttr(t.task_id)}')" aria-label="삭제">✕</button>
-            </div>
-          `).join('');
-        }
+        renderMonthCalendarAndList();
       }
 
-      // 전체 현황 (20명 접이식 요약 카드)
-      const allContainer = document.getElementById('allSection');
-      if (!members.length) {
-        allContainer.innerHTML = '<div class="card empty-msg">등록된 멤버가 없습니다.</div>';
+      renderAllMembers();
+    }
+
+    function renderWeekList() {
+      const container = document.getElementById('weekTasksContainer');
+      const mine = sortByDay(tasks.filter(t => t.member_id === currentMemberId));
+      if (!mine.length) {
+        container.innerHTML = '<div class="empty-msg">이번 주 등록된 할 일이 없습니다.</div>';
         return;
       }
-
-      allContainer.innerHTML = members.map(m => {
-        const mTasks = sortByDay(tasks.filter(t => t.member_id === m.member_id));
-        const mTotal = mTasks.length;
-        const mDone = mTasks.filter(t => t.is_done).length;
-        const mPct = mTotal ? Math.round((mDone / mTotal) * 100) : 0;
-        const isAllDone = mTotal > 0 && mDone === mTotal;
-        const isOpen = expandedIds.has(m.member_id);
-        const canEdit = m.member_id === currentMemberId;
-
-        const detailRows = !mTotal
-          ? '<div class="empty-msg" style="padding:10px 0;">등록된 항목이 없습니다.</div>'
-          : mTasks.map(t => `
-              <div class="task-row">
-                <input type="checkbox" ${t.is_done ? 'checked' : ''} ${canEdit ? '' : 'disabled'} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
-                <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
-                <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(t.content)}</span>
-              </div>
-            `).join('');
-
+      container.innerHTML = mine.map(t => {
+        const parsed = parseTaskContent(t.content);
         return `
-          <div class="member-card">
-            <div class="member-summary" onclick="toggleCard('${escapeAttr(m.member_id)}')">
-              <div class="member-left">
-                <span class="member-name">${escapeHtml(m.name)}</span>
-                ${isAllDone ? '<span class="done-pill">완료</span>' : ''}
-              </div>
-              <div class="member-right">
-                <div class="mini-track"><div class="mini-fill" style="width:${mPct}%"></div></div>
-                <span class="member-count">${mDone}/${mTotal}</span>
-                <span class="caret">${isOpen ? '▲' : '▼'}</span>
-              </div>
-            </div>
-            <div class="member-detail ${isOpen ? '' : 'hidden'}">${detailRows}</div>
+          <div class="task-row">
+            <input type="checkbox" ${t.is_done ? 'checked' : ''} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+            <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
+            ${parsed.dateStr ? `<span class="date-chip">${parsed.dateStr.slice(5)}</span>` : ''}
+            <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(parsed.text)}</span>
+            <button class="del-btn" onclick="removeTask('${escapeAttr(t.task_id)}')" aria-label="삭제">✕</button>
           </div>
         `;
       }).join('');
     }
 
-    function toggleCard(id) {
-      if (expandedIds.has(id)) expandedIds.delete(id);
-      else expandedIds.add(id);
-      renderView();
-    }
+    function renderMonthCalendarAndList() {
+      const year = anchorDate.getFullYear();
+      const month = anchorDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startOffset = (firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1);
+      const totalCells = Math.ceil((startOffset + lastDay.getDate()) / 7) * 7;
+      const todayStr = toDateStr(new Date());
 
-    async function sendPost(body) {
-      await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(body)
+      const myMonthTasks = getMonthTasksForMember(currentMemberId);
+      const countByDate = {};
+      myMonthTasks.forEach(t => {
+        const d = parseTaskContent(t.content).dateStr;
+        if (!countByDate[d]) countByDate[d] = { total: 0, done: 0 };
+        countByDate[d].total += 1;
+        if (t.is_done) countByDate[d].done += 1;
       });
-    }
-
-    async function createTask() {
-      if (!currentMemberId) {
-        alert('상단에서 내 이름을 먼저 선택해 주세요.');
-        return;
-      }
-      const input = document.getElementById('taskInput');
-      const content = input.value.trim();
-      if (!content) return;
-
-      const day = document.getElementById('daySelect').value;
-      const { weekKey } = getWeekMeta(anchorDate);
-      const tempId = 'temp_' + Date.now();
-
-      tasks.push({ task_id: tempId, week_key: weekKey, member_id: currentMemberId, day, content, is_done: false });
-      input.value = '';
-      renderView();
-
-      await sendPost({ action: 'add', week_key: weekKey, member_id: currentMemberId, day, content });
-      loadWeekData();
-    }
-
-    async function toggleTask(taskId) {
-      const item = tasks.find(t => t.task_id === taskId);
-      if (!item) return;
-      item.is_done = !item.is_done;
-      renderView();
-      await sendPost({ action: 'toggle', task_id: taskId });
-    }
-
-    async function removeTask(taskId) {
-      if (!confirm('삭제할까요?')) return;
-      tasks = tasks.filter(t => t.task_id !== taskId);
-      renderView();
-      await sendPost({ action: 'delete', task_id: taskId });
-    }
-
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[m]));
-    }
-
-    function escapeAttr(str) {
-      return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-    }
-
-    renderWeekMeta();
-    loadWeekData();
-  </script>
-</body>
-</html>
