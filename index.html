@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>주간·월간 스터디 플래너(1-2)</title>
+  <title>주간·월간 스터디 플래너</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -179,6 +179,7 @@
       cursor: pointer;
       flex-shrink: 0;
     }
+    /* 월간 달력 */
     .cal-weekdays {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -293,6 +294,7 @@
       padding: 4px 6px;
       cursor: pointer;
     }
+    /* 전체 현황 요약 카드 */
     .member-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -467,7 +469,7 @@
 
     let anchorDate = new Date();
     let selectedDateStr = toDateStr(new Date());
-    let myMode = 'week';
+    let myMode = 'week'; // 'week' | 'month'
     let members = [];
     let tasks = [];
     let currentMemberId = localStorage.getItem('planner_member_id') || '';
@@ -604,7 +606,7 @@
         }
       } catch (e) {
         document.getElementById('memberSelect').innerHTML = '<option value="">불러오기 실패</option>';
-        target.innerHTML = `<div class="empty-msg">시트 데이터를 불러오지 못했습니다. (${escapeHtml(e.message)})</div>`;
+        target.innerHTML = `<div class="empty-msg">시트 데이터를 불러오지 못했습니다. (${escapeHtml(e.message)})<br>Apps Script 배포 권한이 '모든 사용자'인지 확인해 주세요.</div>`;
       }
     }
 
@@ -701,4 +703,174 @@
         const stat = countByDate[dateStr];
         const isSelected = dateStr === selectedDateStr;
         const isToday = dateStr === todayStr;
-        const all
+        const allDone = stat && stat.total > 0 && stat.done === stat.total;
+
+        html += `
+          <div class="cal-cell ${inMonth ? '' : 'muted'} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectCalendarDate('${dateStr}')">
+            <span class="cal-num">${cellDate.getDate()}</span>
+            ${stat ? `<span class="cal-badge ${allDone ? 'all-done' : ''}">${stat.done}/${stat.total}</span>` : '<span></span>'}
+          </div>
+        `;
+      }
+      gridEl.innerHTML = html;
+
+      document.getElementById('selectedDateLabel').textContent = `${selectedDateStr} 할 일`;
+      const dayTasks = tasks.filter(t => t.member_id === currentMemberId && parseTaskContent(t.content).dateStr === selectedDateStr);
+      const listEl = document.getElementById('monthTasksContainer');
+      if (!dayTasks.length) {
+        listEl.innerHTML = '<div class="empty-msg">선택한 날짜에 등록된 할 일이 없습니다.</div>';
+        return;
+      }
+      listEl.innerHTML = dayTasks.map(t => {
+        const parsed = parseTaskContent(t.content);
+        return `
+          <div class="task-row">
+            <input type="checkbox" ${t.is_done ? 'checked' : ''} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+            <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(parsed.text)}</span>
+            <button class="del-btn" onclick="removeTask('${escapeAttr(t.task_id)}')" aria-label="삭제">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectCalendarDate(dateStr) {
+      selectedDateStr = dateStr;
+      document.getElementById('monthDateInput').value = dateStr;
+      renderView();
+    }
+
+    function renderAllMembers() {
+      const allContainer = document.getElementById('allSection');
+      if (!members.length) {
+        allContainer.innerHTML = '<div class="card empty-msg">등록된 멤버가 없습니다.</div>';
+        return;
+      }
+
+      allContainer.innerHTML = members.map(m => {
+        const mTasks = myMode === 'week'
+          ? sortByDay(tasks.filter(t => t.member_id === m.member_id))
+          : getMonthTasksForMember(m.member_id);
+        const mTotal = mTasks.length;
+        const mDone = mTasks.filter(t => t.is_done).length;
+        const mPct = mTotal ? Math.round((mDone / mTotal) * 100) : 0;
+        const isAllDone = mTotal > 0 && mDone === mTotal;
+        const isOpen = expandedIds.has(m.member_id);
+        const canEdit = m.member_id === currentMemberId;
+
+        const detailRows = !mTotal
+          ? '<div class="empty-msg" style="padding:10px 0;">등록된 항목이 없습니다.</div>'
+          : mTasks.map(t => {
+              const parsed = parseTaskContent(t.content);
+              return `
+                <div class="task-row">
+                  <input type="checkbox" ${t.is_done ? 'checked' : ''} ${canEdit ? '' : 'disabled'} onchange="toggleTask('${escapeAttr(t.task_id)}')" />
+                  <span class="day-chip">${DAY_NAME[t.day] || '주간'}</span>
+                  ${parsed.dateStr ? `<span class="date-chip">${parsed.dateStr.slice(5)}</span>` : ''}
+                  <span class="task-label ${t.is_done ? 'done' : ''}">${escapeHtml(parsed.text)}</span>
+                </div>
+              `;
+            }).join('');
+
+        return `
+          <div class="member-card">
+            <div class="member-summary" onclick="toggleCard('${escapeAttr(m.member_id)}')">
+              <div class="member-left">
+                <span class="member-name">${escapeHtml(m.name)}</span>
+                ${isAllDone ? '<span class="done-pill">완료</span>' : ''}
+              </div>
+              <div class="member-right">
+                <div class="mini-track"><div class="mini-fill" style="width:${mPct}%"></div></div>
+                <span class="member-count">${mDone}/${mTotal}</span>
+                <span class="caret">${isOpen ? '▲' : '▼'}</span>
+              </div>
+            </div>
+            <div class="member-detail ${isOpen ? '' : 'hidden'}">${detailRows}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleCard(id) {
+      if (expandedIds.has(id)) expandedIds.delete(id);
+      else expandedIds.add(id);
+      renderAllMembers();
+    }
+
+    async function sendPost(body) {
+      await fetch(API_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    async function createWeekTask() {
+      if (!currentMemberId) return alert('상단에서 내 이름을 먼저 선택해 주세요.');
+      const input = document.getElementById('weekTaskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const day = document.getElementById('weekDaySelect').value;
+      const weekKey = getWeekKeyFromDate(anchorDate);
+      const tempId = 'temp_' + Date.now();
+
+      tasks.push({ task_id: tempId, week_key: weekKey, member_id: currentMemberId, day, content: text, is_done: false });
+      input.value = '';
+      renderView();
+
+      await sendPost({ action: 'add', week_key: weekKey, member_id: currentMemberId, day, content: text });
+      loadData();
+    }
+
+    async function createMonthTask() {
+      if (!currentMemberId) return alert('상단에서 내 이름을 먼저 선택해 주세요.');
+      const input = document.getElementById('monthTaskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const dateStr = document.getElementById('monthDateInput').value || selectedDateStr;
+      const pickedDate = parseDateStr(dateStr);
+      const weekKey = getWeekKeyFromDate(pickedDate);
+      const dayCode = WEEKDAY_CODES[pickedDate.getDay()];
+      const packed = packTaskContent(dateStr, text);
+      const tempId = 'temp_' + Date.now();
+
+      tasks.push({ task_id: tempId, week_key: weekKey, member_id: currentMemberId, day: dayCode, content: packed, is_done: false });
+      input.value = '';
+      renderView();
+
+      await sendPost({ action: 'add', week_key: weekKey, member_id: currentMemberId, day: dayCode, content: packed });
+      loadData();
+    }
+
+    async function toggleTask(taskId) {
+      const item = tasks.find(t => t.task_id === taskId);
+      if (!item) return;
+      item.is_done = !item.is_done;
+      renderView();
+      await sendPost({ action: 'toggle', task_id: taskId });
+    }
+
+    async function removeTask(taskId) {
+      if (!confirm('삭제할까요?')) return;
+      tasks = tasks.filter(t => t.task_id !== taskId);
+      renderView();
+      await sendPost({ action: 'delete', task_id: taskId });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    }
+
+    renderHeader();
+    loadData();
+  </script>
+</body>
+</html>
