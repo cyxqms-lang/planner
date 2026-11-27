@@ -379,7 +379,7 @@
         <div class="user-select-wrap">
           <span class="user-label">내 이름</span>
           <select id="memberSelect" onchange="onSelectMember(this.value)">
-            <option value="">선택하세요</option>
+            <option value="">불러오는 중...</option>
           </select>
         </div>
         <button class="refresh-btn" onclick="loadData()">↻ 새로고침</button>
@@ -403,6 +403,7 @@
       <button class="main-tab-btn" id="btnAllTab" onclick="switchMainTab('all')">전체 현황</button>
     </div>
 
+    <!-- 내 플래너 -->
     <section id="mySection" class="card">
       <div class="submode-bar">
         <div class="submode-group">
@@ -412,6 +413,7 @@
         <button class="refresh-btn" onclick="goToday()">오늘로 이동</button>
       </div>
 
+      <!-- 주간 보기 영역 -->
       <div id="weekModePanel">
         <div class="add-box">
           <select id="weekDaySelect">
@@ -430,6 +432,7 @@
         <div id="weekTasksContainer"></div>
       </div>
 
+      <!-- 월간 보기 영역 -->
       <div id="monthModePanel" class="hidden">
         <div class="cal-weekdays">
           <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
@@ -448,11 +451,12 @@
       </div>
     </section>
 
+    <!-- 전체 현황 -->
     <section id="allSection" class="hidden"></section>
   </div>
 
   <script>
-    const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyw9zWgGto7y_LAPuYCxmMYVGEbYy3AnKBiAiH45PykG8AXVM6Li6wh8d7DgQ4jOA5-/exec';
 
     const DAY_NAME = {
       WEEK: '주간', MON: '월', TUE: '화', WED: '수',
@@ -587,16 +591,20 @@
         : '';
 
       try {
-        const res = await fetch(`${API_URL}${query}`);
+        const res = await fetch(`${API_URL}${query}`, { redirect: 'follow' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.status === 'ok') {
           members = data.members || [];
           tasks = data.tasks || [];
           populateMembers();
           renderView();
+        } else {
+          throw new Error(data.message || '응답 오류');
         }
       } catch (e) {
-        target.innerHTML = '<div class="empty-msg">데이터 연결을 확인해 주세요.</div>';
+        document.getElementById('memberSelect').innerHTML = '<option value="">불러오기 실패</option>';
+        target.innerHTML = `<div class="empty-msg">시트 데이터를 불러오지 못했습니다. (${escapeHtml(e.message)})</div>`;
       }
     }
 
@@ -621,7 +629,9 @@
     }
 
     function renderView() {
-      const activePool = myMode === 'week' ? tasks : getMonthTasksForMember('');
+      const activePool = myMode === 'week'
+        ? tasks
+        : getMonthTasksForMember('');
       const totalCount = activePool.length;
       const doneCount = activePool.filter(t => t.is_done).length;
       const rate = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
@@ -787,6 +797,7 @@
     async function sendPost(body) {
       await fetch(API_URL, {
         method: 'POST',
+        redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(body)
       });
